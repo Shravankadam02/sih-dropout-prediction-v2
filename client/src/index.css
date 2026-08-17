@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #0F172A;
+  --slate-dark: #1E293B;
+  --slate-mid: #475569;
+  --indigo: #6366F1;
+  --canvas: #F8FAFC;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}

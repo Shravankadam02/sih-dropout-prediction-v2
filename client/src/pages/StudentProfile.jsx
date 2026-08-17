@@ -1,0 +1,187 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { FiTrendingDown, FiAlertCircle, FiUser } from "react-icons/fi";
+import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
+import DashboardLayout from "../components/DashboardLayout";
+import RiskBadge from "../components/RiskBadge";
+import RiskFactorBar from "../components/RiskFactorBar";
+import NoteThread from "../components/NoteThread";
+import RiskTrendChart from "../components/RiskTrendChart";
+
+export default function StudentProfile() {
+  const { studentId } = useParams();
+  const { user } = useAuth();
+  const [data, setData] = useState(null);
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    Promise.all([
+      api.get(`/students/${studentId}`),
+      api.get(`/notes/${studentId}`),
+    ])
+      .then(([studentRes, notesRes]) => {
+        setData(studentRes.data);
+        setNotes(notesRes.data.notes);
+      })
+      .catch(() => setError("Failed to load student profile"))
+      .finally(() => setLoading(false));
+  }, [studentId]);
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Loading...">
+        <p className="text-sm text-slate-500">Loading profile...</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <DashboardLayout title="Error">
+        <p className="text-sm text-red-600">{error}</p>
+      </DashboardLayout>
+    );
+  }
+
+  const { student, risk } = data;
+  const canWrite = user?.role === "mentor" || user?.role === "admin";
+
+  return (
+    <DashboardLayout
+      title={`${student.firstName} ${student.lastName}`}
+      subtitle={`${student.studentId} · ${student.class} · ${student.department}`}
+      headerIcon={FiUser}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Risk overview */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1">
+                  Overall Risk
+                </p>
+                <p className="text-3xl font-semibold text-slate-900">
+                  {(risk.riskScore * 100).toFixed(0)}%
+                </p>
+              </div>
+              <RiskBadge level={risk.riskLevel} />
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6">
+              <p className="text-xs font-medium text-slate-500 mb-4">
+                Risk Trend
+              </p>
+              <RiskTrendChart riskHistory={data.riskHistory} />
+            </div>
+
+            <div className="border-t border-slate-100 pt-5">
+              <p className="text-xs font-medium text-slate-500 mb-4">
+                Risk Factor Breakdown
+              </p>
+              {Object.entries(risk.components).map(([key, val]) => (
+                <RiskFactorBar key={key} factorKey={key} value={val} />
+              ))}
+            </div>
+          </div>
+
+          {risk.topReasons?.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6">
+              <p className="text-xs font-medium text-slate-500 mb-3 flex items-center gap-1.5">
+                <FiTrendingDown size={14} /> Key Reasons
+              </p>
+              <ul className="space-y-2">
+                {risk.topReasons.map((r, i) => (
+                  <li
+                    key={i}
+                    className="text-sm text-slate-700 flex items-start gap-2"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-slate-400 mt-2 shrink-0" />
+                    {r.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {risk.recommendations?.length > 0 && (
+            <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-5 sm:p-6">
+              <p className="text-xs font-medium text-indigo-700 mb-3 flex items-center gap-1.5">
+                <FiAlertCircle size={14} /> Recommended Actions
+              </p>
+              <ul className="space-y-2">
+                {risk.recommendations.map((r, i) => (
+                  <li
+                    key={i}
+                    className="text-sm text-indigo-900 flex items-start gap-2"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-indigo-400 mt-2 shrink-0" />
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Raw data snapshot */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6">
+            <p className="text-xs font-medium text-slate-500 mb-4">Raw Data</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-slate-400 mb-0.5">Attendance</p>
+                <p className="font-medium text-slate-800">
+                  {student.attendancePercent}%
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-0.5">Fees Overdue</p>
+                <p className="font-medium text-slate-800">
+                  {student.feesDueDays} days
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-0.5">
+                  Subject Attempts
+                </p>
+                <p className="font-medium text-slate-800">
+                  {student.attemptsInSubjectX}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-0.5">Recent Avg</p>
+                <p className="font-medium text-slate-800">
+                  {student.last3TestsAvg}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-0.5">Previous Avg</p>
+                <p className="font-medium text-slate-800">
+                  {student.previous3TestsAvg}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Notes */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 h-fit">
+          <p className="text-xs font-medium text-slate-500 mb-4">
+            Intervention Notes
+          </p>
+          <NoteThread
+            studentId={studentId}
+            notes={notes}
+            canWrite={canWrite}
+            onNoteAdded={(n) => setNotes([n, ...notes])}
+            onNoteUpdated={(updated) =>
+              setNotes(notes.map((n) => (n._id === updated._id ? updated : n)))
+            }
+          />
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
