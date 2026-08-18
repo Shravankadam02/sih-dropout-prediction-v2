@@ -3,7 +3,7 @@ import Student from '../models/Student.js';
 import Note from '../models/Note.js';
 import { protect } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roleCheck.js';
-import { calculateRisk } from '../services/riskCalculator.js';
+import { calculateRiskBatch, getTopReasons } from '../services/riskCalculator.js';
 
 const router = express.Router();
 
@@ -21,9 +21,15 @@ router.get('/', protect, requireRole('admin', 'mentor'), async (req, res) => {
     const testTrends = [];
     const highRiskStudents = [];
 
-    for (const s of students) {
-      const { riskLevel, riskScore, topReasons } = calculateRisk(s);
-      distribution[riskLevel]++;
+    for (let i = 0; i < students.length; i++) {
+      const s = students[i];
+      const riskLevel = s.riskLevel || 'Low';
+      const riskScore = s.riskScore || 0;
+      const topReasons = getTopReasons(s.mlInsights);
+      
+      if (distribution[riskLevel] !== undefined) {
+          distribution[riskLevel]++;
+      }
 
       const dept = s.department || 'Unspecified';
       byDepartment[dept] = byDepartment[dept] || { High: 0, Medium: 0, Low: 0 };

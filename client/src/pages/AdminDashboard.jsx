@@ -28,6 +28,19 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   };
 
+  const handlePredictRefresh = () => {
+    setLoading(true);
+    api.post('/students/predict-all')
+      .then(() => {
+        fetchDashboardData();
+      })
+      .catch((err) => {
+        console.error('Prediction failed:', err);
+        setError('Failed to run batch predictions');
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
     fetchDashboardData();
   }, [location.key]);
@@ -116,7 +129,7 @@ export default function AdminDashboard() {
   const headerActions = (
     <button
       type="button"
-      onClick={fetchDashboardData}
+      onClick={handlePredictRefresh}
       className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 transition font-medium text-sm"
     >
       <FiRefreshCw size={16} />

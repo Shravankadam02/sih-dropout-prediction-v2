@@ -3,7 +3,7 @@ import Student from '../models/Student.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roleCheck.js';
-import { calculateRisk, getTopReasons, generateRecommendations } from '../services/riskCalculator.js';
+import { calculateRisk, calculateRiskBatch, getTopReasons, generateRecommendations } from '../services/riskCalculator.js';
 
 const router = express.Router();
 
@@ -26,27 +26,39 @@ router.get('/', protect, async (req, res) => {
     if (req.query.department) query.department = req.query.department;
     if (req.query.college) query.college = req.query.college;
 
+    const students = await Student.find(query).sort({ riskScore: -1 });
+
+    res.json({ count: students.length, students });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// POST /api/students/predict-all — Trigger batch prediction and save to DB
+router.post('/predict-all', protect, async (req, res) => {
+  try {
+    let query = {};
+    if (req.user.role === 'mentor') query.mentorId = req.user.mentorCode; 
+    if (req.user.role === 'counsellor') query.counsellorId = req.user.counsellorCode;
+
     const students = await Student.find(query);
+    const withRisk = await calculateRiskBatch(students);
 
-    const withRisk = students.map((s) => {
-      const { riskScore, riskLevel } = calculateRisk(s);
-      return {
-        studentId: s.studentId,
-        firstName: s.firstName,
-        lastName: s.lastName,
-        class: s.class,
-        department: s.department,
-        mentorId: s.mentorId,
-        counsellorId: s.counsellorId,
-        riskScore,
-        riskLevel,
-      };
-    });
+    // Save predictions to database
+    for (const studentData of withRisk) {
+      await Student.updateOne(
+        { studentId: studentData.studentId },
+        { 
+          $set: { 
+            riskScore: studentData.riskScore,
+            riskLevel: studentData.riskLevel,
+            mlInsights: studentData.mlInsights
+          }
+        }
+      );
+    }
 
-    // Sort highest risk first
-    withRisk.sort((a, b) => b.riskScore - a.riskScore);
-
-    res.json({ count: withRisk.length, students: withRisk });
+    res.json({ message: 'Batch prediction complete', count: withRisk.length });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -112,9 +124,9 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { riskScore, riskLevel, components } = calculateRisk(student);
-    const topReasons = getTopReasons(components);
-    const recommendations = generateRecommendations(riskLevel, components);
+    const { riskScore, riskLevel, mlInsights } = await calculateRisk(student);
+    const topReasons = getTopReasons(mlInsights);
+    const recommendations = generateRecommendations(riskLevel, mlInsights);
 
     // Save a snapshot to riskHistory (enables trend charts later)
     student.riskHistory.push({ riskScore, riskLevel });
@@ -139,7 +151,7 @@ router.get('/:id', protect, async (req, res) => {
         lastTest2: student.lastTest2,
         lastTest3: student.lastTest3,
       },
-      risk: { riskScore, riskLevel, components, topReasons, recommendations },
+      risk: { riskScore, riskLevel, components: mlInsights, topReasons, recommendations },
       riskHistory: student.riskHistory,
     });
   } catch (err) {

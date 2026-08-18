@@ -80,10 +80,10 @@ export default function StudentProfile() {
 
             <div className="border-t border-slate-100 pt-5">
               <p className="text-xs font-medium text-slate-500 mb-4">
-                Risk Factor Breakdown
+                AI Risk Factor Breakdown (SHAP Impact)
               </p>
-              {Object.entries(risk.components).map(([key, val]) => (
-                <RiskFactorBar key={key} factorKey={key} value={val} />
+              {risk.components?.top_factors?.map((factor, i) => (
+                <RiskFactorBar key={i} factorKey={factor.feature} value={Math.abs(factor.impact)} />
               ))}
             </div>
           </div>

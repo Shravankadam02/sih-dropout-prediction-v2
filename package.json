@@ -1,0 +1,14 @@
+{
+  "name": "sih-dropout-v2-root",
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\" \"npm run start:ml\"",
+    "start:server": "cd server && npm run dev",
+    "start:client": "cd client && npm run dev",
+    "start:ml": "cd Dropout.P\\Dropout.P && ..\\.venv\\Scripts\\python.exe api.py"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

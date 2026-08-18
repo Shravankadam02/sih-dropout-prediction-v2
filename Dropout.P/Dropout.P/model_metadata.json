@@ -1,0 +1,48 @@
+{
+  "model_name": "RandomForest",
+  "trained_on": "student_dropout_prediction_1000.csv (real data, n=1000)",
+  "features": [
+    "age",
+    "gender",
+    "attendance_percentage",
+    "previous_semester_gpa",
+    "backlogs",
+    "internal_marks_percentage",
+    "assignment_completion_rate",
+    "study_hours_per_week",
+    "failed_subjects",
+    "family_income",
+    "distance_from_college_km",
+    "fee_payment_delay",
+    "scholarship",
+    "extracurricular_participation"
+  ],
+  "feature_descriptions": {
+    "age": "Student age in years",
+    "gender": "0 = Female, 1 = Male",
+    "attendance_percentage": "Attendance percentage (0-100)",
+    "previous_semester_gpa": "Previous semester GPA (0-10)",
+    "backlogs": "Number of current backlogs",
+    "internal_marks_percentage": "Internal assessment marks percentage (0-100)",
+    "assignment_completion_rate": "Assignment completion percentage (0-100)",
+    "study_hours_per_week": "Self-reported study hours per week",
+    "failed_subjects": "Number of subjects failed",
+    "family_income": "Annual family income (INR)",
+    "distance_from_college_km": "Distance from college in km",
+    "fee_payment_delay": "0 = fees paid on time, 1 = fee payment delayed",
+    "scholarship": "0 = no scholarship, 1 = has scholarship",
+    "extracurricular_participation": "0 = not involved, 1 = involved in extracurriculars"
+  },
+  "label_map": {
+    "Dropout": 0,
+    "No Dropout": 1
+  },
+  "best_params": {
+    "max_depth": 10,
+    "max_features": "sqrt",
+    "min_samples_split": 5,
+    "n_estimators": 400
+  },
+  "test_accuracy": 0.895,
+  "test_macro_f1": 0.8240542918185245
+}
